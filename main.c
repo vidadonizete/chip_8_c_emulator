@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-uint8_t font[16][5] = {
+static uint8_t font[16][5] = {
     {
         0b11110000,
         0b10010000,
@@ -116,22 +116,17 @@ uint8_t font[16][5] = {
     },
 };
 
-struct stack
-{
-    uint16_t memory[16];
-    uint8_t sp;
-};
-
 struct chip_8
 {
     uint8_t memory[4 * 1024];
     uint16_t pc;
     uint8_t registers[16];
     uint16_t I;
-    struct stack stack;
+    uint16_t stack[16];
+    uint8_t sp;
     uint8_t delay;
     uint8_t sound;
-    uint8_t display[32][4];
+    uint8_t display[256];
 };
 
 int main(int argc, char *argv[])
