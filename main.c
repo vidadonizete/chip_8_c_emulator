@@ -73,10 +73,14 @@ int main(int argc, char *argv[])
     read_rom(&chip_8, "../ibm.ch8");
     memcpy(chip_8.memory + FONT_OFFSET, font, sizeof(font));
 
+    uint16_t opcode = 0;
+    uint8_t left = 0;
+    uint8_t right = 0;
+
     while (1)
     {
-
-        uint16_t opcode;
+        left = chip_8.memory[chip_8.pc++];
+        right = chip_8.memory[chip_8.pc++];
     }
 
     return 0;
