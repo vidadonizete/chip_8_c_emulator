@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include <SDL2/SDL.h>
+
 static uint8_t font[] = {
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
     0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -59,6 +61,14 @@ static void read_rom(struct chip_8 *chip_8, char *name)
 
 int main(int argc, char *argv[])
 {
+    if (SDL_Init(SDL_INIT_VIDEO) < 0)
+    {
+        fprintf(stderr, "Error starting SDL2: %s", SDL_GetError());
+        exit(0);
+    }
+
+    SDL_Window *window = SDL_CreateWindow("CHIP-8", 0, 0, 64, 32, SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN);
+
     struct chip_8 chip_8 = {
         .memory = {},
         .pc = 0x200,
@@ -77,11 +87,12 @@ int main(int argc, char *argv[])
     uint8_t left = 0;
     uint8_t right = 0;
 
-    while (1)
+    while (0)
     {
         left = chip_8.memory[chip_8.pc++];
         right = chip_8.memory[chip_8.pc++];
     }
 
+    SDL_DestroyWindow(window);
     return 0;
 }

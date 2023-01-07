@@ -7,4 +7,5 @@ add_executable(
     main.c
 )
 
-target_include_directories(chip_8 PRIVATE include)
+find_package(SDL2 REQUIRED)
+target_link_libraries(chip_8 ${SDL2_LIBRARIES})
