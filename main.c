@@ -146,13 +146,25 @@ int main(int argc, char *argv[])
         opcode = (left << 8) | right;
         code = left >> 4;
 
-        if (opcode == 0x00E0) // 00E0 (clear screen)
+        if (left == 0x00)
         {
-            memset(chip_8.display, 0, sizeof(chip_8.display));
-            clearScreen(renderer);
+            if (right == 0xE0) // 00E0 (clear screen)
+            {
+                memset(chip_8.display, 0, sizeof(chip_8.display));
+                clearScreen(renderer);
+            }
+            else if (right == 0xEE) // 00EE pop stack to PC
+            {
+                chip_8.pc = chip_8.stack[--chip_8.sp];
+            }
         }
-        else if (code == 0x01) // 1NNN (jump)
+        else if (code == 0x01) // 1NNN set PC to NNN
         {
+            chip_8.pc = opcode & 0x0FFF;
+        }
+        else if (code == 0x02) // 2NNN calls the subroutine at memory location NNN
+        {
+            chip_8.stack[chip_8.sp++] = chip_8.pc - 2;
             chip_8.pc = opcode & 0x0FFF;
         }
         else if (code == 0x06) // 6XNN (set register VX)
