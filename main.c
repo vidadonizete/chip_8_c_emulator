@@ -28,6 +28,8 @@ static uint8_t font[] = {
 #define ROM_OFFSET 0x200
 #define ROW 32
 #define COLUMN 64
+#define BYTE_BITS 8
+#define BYTE_COLUMN COLUMN / BYTE_BITS
 
 struct chip_8
 {
@@ -39,7 +41,7 @@ struct chip_8
     uint8_t sp;
     uint8_t delay;
     uint8_t sound;
-    uint8_t display[32 * 64];
+    uint8_t display[ROW][BYTE_COLUMN];
 };
 
 static void read_rom(struct chip_8 *chip_8, char *name)
@@ -61,7 +63,7 @@ static void read_rom(struct chip_8 *chip_8, char *name)
     fclose(file);
 }
 
-static void clearScreen(SDL_Renderer* renderer)
+static void clearScreen(SDL_Renderer *renderer)
 {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
     SDL_RenderClear(renderer);
@@ -69,16 +71,20 @@ static void clearScreen(SDL_Renderer* renderer)
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
 }
 
-static void drawPixels(SDL_Renderer *renderer, uint8_t display[2048])
+static void drawPixels(SDL_Renderer *renderer, uint8_t display[ROW][BYTE_COLUMN])
 {
     clearScreen(renderer);
-    for (int i = 0; i < ROW; i++)
+    for (int r = 0; r < ROW; r++)
     {
-        for (int j = 0; j < COLUMN; j++)
+        for (int c = 0; c < BYTE_COLUMN; c++)
         {
-            if (display[i * COLUMN + j])
+            uint8_t byte = display[r][c];
+            for (uint8_t b = 0; b < 8; b++)
             {
-                SDL_RenderDrawPoint(renderer, j, i);
+                if ((byte >> (7 - b)) & 1)
+                {
+                    SDL_RenderDrawPoint(renderer, c * 8 + b, r);
+                }
             }
         }
     }
@@ -121,15 +127,18 @@ int main(int argc, char *argv[])
         .display = {},
     };
 
-    read_rom(&chip_8, "../test.ch8");
+    read_rom(&chip_8, "../ibm.ch8");
     memcpy(chip_8.memory + FONT_OFFSET, font, sizeof(font));
+
+    uint8_t running = SDL_TRUE;
+    SDL_Event event;
 
     uint16_t opcode = 0;
     uint8_t left = 0;
     uint8_t right = 0;
     uint8_t code = 0;
 
-    while (1)
+    while (running)
     {
         left = chip_8.memory[chip_8.pc++];
         right = chip_8.memory[chip_8.pc++];
@@ -141,44 +150,60 @@ int main(int argc, char *argv[])
             memset(chip_8.display, 0, sizeof(chip_8.display));
             clearScreen(renderer);
         }
-        else if (code == 0x1) // 1NNN (jump)
+        else if (code == 0x01) // 1NNN (jump)
         {
             chip_8.pc = opcode & 0x0FFF;
         }
-        else if (code == 0x6) // 6XNN (set register VX)
+        else if (code == 0x06) // 6XNN (set register VX)
         {
             chip_8.registers[(opcode & 0x0F00) >> 8] = opcode & 0x00FF;
         }
-        else if (code == 0x7) // 7XNN (add value to register VX)
+        else if (code == 0x07) // 7XNN (add value to register VX)
         {
             chip_8.registers[(opcode & 0x0F00) >> 8] += opcode & 0x00FF;
         }
-        else if (code == 0xA) // ANNN (set index register I)
+        else if (code == 0x0A) // ANNN (set index register I)
         {
             chip_8.index = opcode & 0x0FFF;
         }
-        else if (code == 0xD) // DXYN (display/draw)
+        else if (code == 0x0D) // DXYN (display/draw)
         {
-            chip_8.registers[0x0F] = 0;
-
             uint8_t n = opcode & 0x000F;
-            uint8_t y = chip_8.registers[(opcode & 0x00F0) >> 4] % 32;
-            uint8_t x = chip_8.registers[(opcode & 0x0F00) >> 8] % 64;
+            uint8_t y = chip_8.registers[(opcode & 0x00F0) >> 4] % ROW;
+            uint8_t x = chip_8.registers[(opcode & 0x0F00) >> 8] % COLUMN;
 
             uint8_t *sprite = chip_8.memory + chip_8.index;
 
-            for (uint8_t r = 0; r < n && r + y < ROW; r++)
+            for (uint8_t r = 0; r < n && r + y < ROW; r++, sprite++)
             {
-                uint8_t *row = chip_8.display + ((y + r) * COLUMN);
-                for (uint8_t c = 0; c < 8 && c + x < COLUMN; c++)
+                // quite complex beautiful shit
+                // its only reason is that i dont need
+                // to copy/past pixel per pixel
+                uint8_t *column = chip_8.display[r + y];
+                uint8_t mask = x % BYTE_BITS;
+                uint8_t offset = x / BYTE_BITS;
+                *(column + offset) ^= *sprite >> mask;
+                if (offset + 1 < BYTE_COLUMN)
                 {
-                    uint8_t pixel = (*sprite >> (7 - c)) & 1;
-                    *(row + x + c) = pixel;
+                    *(column + offset + 1) ^= *sprite << (BYTE_BITS - mask);
                 }
-                sprite++;
             }
 
             drawPixels(renderer, chip_8.display);
+        }
+        else
+        {
+            printf("Unknown opcode: 0x%08X\n", opcode);
+        }
+
+        while (SDL_PollEvent(&event))
+        {
+            switch (event.type)
+            {
+            case SDL_QUIT:
+                running = SDL_FALSE;
+                break;
+            }
         }
     }
 
