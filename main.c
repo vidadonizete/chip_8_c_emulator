@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
     read_rom(&chip_8, "../ibm.ch8");
     memcpy(chip_8.memory + FONT_OFFSET, font, sizeof(font));
 
-    uint8_t running = SDL_TRUE;
+    SDL_bool keep_going = SDL_TRUE;
     SDL_Event event;
 
     uint16_t opcode = 0;
@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
     uint8_t right = 0;
     uint8_t code = 0;
 
-    while (running)
+    while (keep_going)
     {
         left = chip_8.memory[chip_8.pc++];
         right = chip_8.memory[chip_8.pc++];
@@ -202,7 +202,7 @@ int main(int argc, char *argv[])
             switch (event.type)
             {
             case SDL_QUIT:
-                running = SDL_FALSE;
+                keep_going = SDL_FALSE;
                 break;
             }
         }
