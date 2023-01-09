@@ -157,11 +157,11 @@ int main(int argc, char *argv[])
         }
         else if (code == 0x06) // 6XNN (set register VX)
         {
-            chip_8.registers[(opcode & 0x0F00) >> 8] = opcode & 0x00FF;
+            chip_8.registers[(opcode & 0x0F00) >> 8] = opcode; // & 0x00FF;
         }
         else if (code == 0x07) // 7XNN (add value to register VX)
         {
-            chip_8.registers[(opcode & 0x0F00) >> 8] += opcode & 0x00FF;
+            chip_8.registers[(opcode & 0x0F00) >> 8] += opcode; // & 0x00FF;
         }
         else if (code == 0x0A) // ANNN (set index register I)
         {
@@ -184,10 +184,9 @@ int main(int argc, char *argv[])
                 uint8_t mask = x % BYTE_BITS;
                 uint8_t offset = x / BYTE_BITS;
                 *(column + offset) ^= *sprite >> mask;
-                if (offset + 1 < BYTE_COLUMN)
-                {
-                    *(column + offset + 1) ^= *sprite << (BYTE_BITS - mask);
-                }
+                if (++offset >= BYTE_COLUMN)
+                    continue;
+                *(column + offset) ^= *sprite << (BYTE_BITS - mask);
             }
 
             drawPixels(renderer, chip_8.display);
