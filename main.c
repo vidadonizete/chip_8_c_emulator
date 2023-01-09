@@ -79,11 +79,12 @@ static void drawPixels(SDL_Renderer *renderer, uint8_t display[ROW][BYTE_COLUMN]
         for (int c = 0; c < BYTE_COLUMN; c++)
         {
             uint8_t byte = display[r][c];
-            for (uint8_t b = 0; b < 8; b++)
+            for (uint8_t i = 0; i < BYTE_BITS; i++)
             {
-                if ((byte >> (7 - b)) & 1)
+                // 0x80 == 0b1000000
+                if ((byte << i) & 0x80)
                 {
-                    SDL_RenderDrawPoint(renderer, c * 8 + b, r);
+                    SDL_RenderDrawPoint(renderer, c * BYTE_BITS + i, r);
                 }
             }
         }
